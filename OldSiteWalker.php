@@ -19,7 +19,7 @@ class OldSiteWalker {
     for( $c=0; $c < count($this->categories); $c++ ){
       $category = $this->categories[ $c ];
       print('> Procesando categoría: '.$category[ $this->walker_config['CATEGORY_TABLE']['CATEGORY_NAME_FIELD'] ].' id: '.$category['id']."\n");
-      $this->wordpress_importer->insertCategory( [
+      $category_inserted = $this->wordpress_importer->insertCategory( [
         'id'   => $category['id'],
         'name' => $category[ $this->walker_config['CATEGORY_TABLE']['CATEGORY_NAME_FIELD'] ]
       ]);
@@ -53,7 +53,7 @@ class OldSiteWalker {
             'post_type'             => 'post',
             'post_mime_type'        => '',
             'comment_count'         => 0
-        ] );
+        ], $category_inserted);
       }
 
       print("\n");

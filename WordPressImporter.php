@@ -26,7 +26,7 @@ class WordPressImporter {
       print("  + Termino agregado a la DB, ID> ".$term_id."\n");
     } else {
       print("  E Termino no agregado a la DB"."\n");
-      return false;
+      return 0;
     }
 
     $taxonomy_id = $this->insertTermTaxonomy(
@@ -42,9 +42,9 @@ class WordPressImporter {
       print("  + Taxonomía agregada a la DB, ID> ".$taxonomy_id."\n");
     } else {
       print("  E Taxonomía no agregada a la DB"."\n");
-      return false;
+      return 0;
     }
-    return true;
+    return $taxonomy_id;
   }
 
   public function insertTerm( $term ){
@@ -85,8 +85,37 @@ class WordPressImporter {
     }
   }
 
-  public function insertTermRelationship( $term, $post){
+  public function insertTermRelationship( $termRelationSh ){
+    $term_r_f = $this->getTermRelationshipByPostId( $termRelationSh['object_id'] );
+    if ( $term_r_f == 0 ){
+      $table_name   = $this->importer_config['TERM_RELATIONSHIP']['TABLE_NAME'];
+      $sql          = "INSERT INTO `$table_name` (object_id, term_taxonomy_id, term_order) VALUES (:object_id, :term_taxonomy_id, :term_order)";
+      $query        = $this->db_destino->prepare( $sql );
+      $query->execute([
+        ':object_id'        => $termRelationSh['object_id'],
+        ':term_taxonomy_id' => $termRelationSh['term_taxonomy_id'],
+        ':term_order'       => $termRelationSh['term_order'],
+      ]);
+      return $this->db_destino->lastInsertId();
+    } else {
+      return $term_r_f;
+    }
+  }
 
+  public function getTermRelationshipByPostId( $post_id ){
+    $table_name     = $this->importer_config['TERM_RELATIONSHIP']['TABLE_NAME'];
+    $post_id_field  = $this->importer_config['TERM_RELATIONSHIP']['POST_ID_FIELD'];
+    $sql          = "SELECT * FROM `$table_name` WHERE `$post_id_field` = :post_id";
+    $query        = $this->db_destino->prepare( $sql );
+    $query->execute([':post_id'=> $post_id]);
+    $query = $query->fetchAll(PDO::FETCH_OBJ);
+
+    if ( count($query) > 0){
+      $query = get_object_vars($query[0]);
+      return $query[ $this->importer_config['TERM_RELATIONSHIP']['POST_ID_FIELD'] ];
+    } else {
+      return 0;
+    }
   }
 
   public function getTermID( $term ){
@@ -124,7 +153,7 @@ class WordPressImporter {
   ///////////////////////////////////////////////////////////////////
   ///// POSTS
   //////////////////////
-  public function insertPost( $post ){
+  public function insertPost( $post, $category_id ){
     $post['post_name'] = $this->getSlug($post['post_name']);
 
     $post_f = $this->getPostIdByTitle( $post['post_title'] );
@@ -159,10 +188,21 @@ class WordPressImporter {
         ':post_mime_type'        => $post['post_mime_type'],
         ':comment_count'         => $post['comment_count'],
       ]);
-      return $this->db_destino->lastInsertId();
-    } else {
-      return $post_f;
+      $post_f = $this->db_destino->lastInsertId();
     }
+
+    if ($post_f > 0){
+      print("   + Post procesado, ID> ".$post_f."\n");
+      $relation_sh_id = $this->insertTermRelationship( [
+        'object_id'        => $post_f,
+        'term_taxonomy_id' => $category_id,
+        'term_order'       => 0
+      ]);
+    } else {
+      print("   A Post procesado, ID> ".$post_f."\n");
+    }
+
+    return $post_f;
   }
 
   public function getPostIdByTitle( $title ){
