@@ -25,6 +25,7 @@ function getConfig(){
         "TABLE_NAME"          => "categorias",
         "CATEGORY_NAME_FIELD" => "categoria"
       ],
+      "GMT_ZONE" => -3,
     ],
 
     "WORDPRESS_IMPORTER" => [

@@ -30,11 +30,40 @@ class OldSiteWalker {
       //Se recorren los posts
       for ( $d=0; $d < count($category_posts); $d++ ){
         $post = $category_posts[$d];
-
+        $this->wordpress_importer->insertPost( [
+            'post_author'           => 1,
+            'post_date'             => $post->fecha,
+            'post_date_gmt'         => $this->_getTimeGMT( $post->fecha ),
+            'post_content'          => $post->contenido,
+            'post_title'            => $post->titulo,
+            'post_excerpt'          => $post->subtitulo,
+            'post_status'           => 'publish',
+            'comment_status'        => 'closed',
+            'ping_status'           => 'closed',
+            'post_password'         => '',
+            'post_name'             => $post->titulo,
+            'to_ping'               => '',
+            'pinged'                => '',
+            'post_modified'         => $post->fecha,
+            'post_modified_gmt'     => $this->_getTimeGMT( $post->fecha ),
+            'post_content_filtered' => '',
+            'post_parent'           => 0,
+            'guid'                  => '', //actualizar  post creacion del registro
+            'menu_order'            => 0,
+            'post_type'             => 'post',
+            'post_mime_type'        => '',
+            'comment_count'         => 0
+        ] );
       }
 
       print("\n");
     }
+  }
+
+  protected function _getTimeGMT( $dateTime ){
+       $dateTime = new \DateTime($dateTime);
+       $dateTime->modify('+ '.(-$this->walker_config['GMT_ZONE']).' hour');
+       return $dateTime->format('Y-m-d H-i-s');
   }
 
   protected function _getCategories(){

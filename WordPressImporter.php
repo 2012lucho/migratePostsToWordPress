@@ -114,15 +114,71 @@ class WordPressImporter {
     $query = $query->fetchAll(PDO::FETCH_OBJ);
 
     if ( count($query) > 0){
-      $query = get_object_vars($query[0]); 
+      $query = get_object_vars($query[0]);
       return $query[ $this->importer_config['TERMS_TAXONOMY_TABLE']['ID_FIELD'] ];
     } else {
       return 0;
     }
   }
 
+  ///////////////////////////////////////////////////////////////////
+  ///// POSTS
+  //////////////////////
   public function insertPost( $post ){
+    $post['post_name'] = $this->getSlug($post['post_name']);
 
+    $post_f = $this->getPostIdByTitle( $post['post_title'] );
+    if ( $post_f == 0 ){
+      $table_name   = $this->importer_config['POSTS_TABLE']['TABLE_NAME'];
+      $sql          = "INSERT INTO `$table_name` (post_author, post_date, post_date_gmt, post_content,  post_title, post_excerpt, post_status, comment_status, ping_status, post_password,
+               post_name, to_ping, pinged, post_modified, post_modified_gmt, post_content_filtered, post_parent, guid, menu_order, post_type, post_mime_type, comment_count)
+                        VALUES (:post_author, :post_date, :post_date_gmt, :post_content,  :post_title, :post_excerpt, :post_status, :comment_status, :ping_status, :post_password,
+                                 :post_name, :to_ping, :pinged, :post_modified, :post_modified_gmt, :post_content_filtered, :post_parent, :guid, :menu_order, :post_type, :post_mime_type, :comment_count)";
+      $query        = $this->db_destino->prepare( $sql );
+      $query->execute([
+        ':post_author'           => $post['post_author'],
+        ':post_date'             => $post['post_date'],
+        ':post_date_gmt'         => $post['post_date_gmt'],
+        ':post_content'          => $post['post_content'],
+        ':post_title'            => $post['post_title'],
+        ':post_excerpt'          => $post['post_excerpt'],
+        ':post_status'           => $post['post_status'],
+        ':comment_status'        => $post['comment_status'],
+        ':ping_status'           => $post['ping_status'],
+        ':post_password'         => $post['post_password'],
+        ':post_name'             => $post['post_name'],
+        ':to_ping'               => $post['to_ping'],
+        ':pinged'                => $post['pinged'],
+        ':post_modified'         => $post['post_modified'],
+        ':post_modified_gmt'     => $post['post_modified_gmt'],
+        ':post_content_filtered' => $post['post_content_filtered'],
+        ':post_parent'           => $post['post_parent'],
+        ':guid'                  => $post['guid'], //actualizar  post creacion del registro
+        ':menu_order'            => $post['menu_order'],
+        ':post_type'             => $post['post_type'],
+        ':post_mime_type'        => $post['post_mime_type'],
+        ':comment_count'         => $post['comment_count'],
+      ]);
+      return $this->db_destino->lastInsertId();
+    } else {
+      return $post_f;
+    }
+  }
+
+  public function getPostIdByTitle( $title ){
+    $table_name   = $this->importer_config['POSTS_TABLE']['TABLE_NAME'];
+    $title_field  = $this->importer_config['POSTS_TABLE']['TITLE_FIELD'];
+    $sql          = "SELECT * FROM `$table_name` WHERE `$title_field` = :title";
+    $query        = $this->db_destino->prepare( $sql );
+    $query->execute([':title'=> $title]);
+    $query = $query->fetchAll(PDO::FETCH_OBJ);
+
+    if ( count($query) > 0){
+      $query = get_object_vars($query[0]);
+      return $query[ $this->importer_config['POSTS_TABLE']['ID_FIELD'] ];
+    } else {
+      return 0;
+    }
   }
 
   public function insertImage(){
