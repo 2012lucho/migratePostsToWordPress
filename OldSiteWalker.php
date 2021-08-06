@@ -53,11 +53,15 @@ class OldSiteWalker {
             'post_type'             => 'post',
             'post_mime_type'        => '',
             'comment_count'         => 0
-        ], $category_inserted);
+        ], $category_inserted, $this->_getTagsFromTagsString($post->keywords) );
       }
 
       print("\n");
     }
+  }
+
+  protected function _getTagsFromTagsString( $tagString ){
+    return explode( $this->walker_config['KEYWORD_DIVIDER'], $tagString);
   }
 
   protected function _getTimeGMT( $dateTime ){

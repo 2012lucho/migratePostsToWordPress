@@ -153,7 +153,7 @@ class WordPressImporter {
   ///////////////////////////////////////////////////////////////////
   ///// POSTS
   //////////////////////
-  public function insertPost( $post, $category_id ){
+  public function insertPost( $post, $category_id, $tags ){
     $post['post_name'] = $this->getSlug($post['post_name']);
 
     $post_f = $this->getPostIdByTitle( $post['post_title'] );
@@ -192,12 +192,19 @@ class WordPressImporter {
     }
 
     if ($post_f > 0){
-      print("   + Post procesado, ID> ".$post_f."\n");
+      //Se asocian los posts con sus respectivas categorías
+      print("   + Post procesado (asociado con su categoría), ID> ".$post_f."\n");
       $relation_sh_id = $this->insertTermRelationship( [
         'object_id'        => $post_f,
         'term_taxonomy_id' => $category_id,
         'term_order'       => 0
       ]);
+
+      //Se crean tags
+      for ( $k = 0; $k < count($tags); $k++ ){
+        $tag = $tags[$k];
+        print("    + Etiqueta encontrada, procesando > ".$tag."\n");
+      }
     } else {
       print("   A Post procesado, ID> ".$post_f."\n");
     }
