@@ -208,12 +208,18 @@ class WordPressImporter {
         'term_order'       => 0
       ]);
 
-      //Se crean tags
+      //Se asocian los posts con sus respectivos tags
       for ( $k = 0; $k < count($tags); $k++ ){
         $tag = $tags[$k];
         $tag_id = $this->insertTag([
           'id'   => $category_id,
           'name' => $tag
+        ]);
+
+        $relation_sh_id = $this->insertTermRelationship( [
+          'object_id'        => $post_f,
+          'term_taxonomy_id' => $tag_id,
+          'term_order'       => 0
         ]);
         print("    + Etiqueta encontrada, procesando > ".$tag." ID > ".$tag_id."\n");
       }
@@ -240,10 +246,17 @@ class WordPressImporter {
     }
   }
 
+  ///////////////////////////////////////////////////////////////////
+  ///// IMÄGENES Y METADATA
+  //////////////////////
+
   public function insertImage(){
 
   }
 
+  ///////////////////////////////////////////////////////////////////
+  ///// GRAL
+  //////////////////////
   public function getSlug( $string ){
      $slug=preg_replace('/[^A-Za-z0-9-]+/', '-', $string);
      return $slug;
