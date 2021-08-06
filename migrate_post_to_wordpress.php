@@ -16,8 +16,8 @@ function databaseConnect($params){
 }
 
 // SE INSTANCIA IMPORTADOR y EXPORTADOR
-$wordpress_importer = new WordPressImporter( databaseConnect( $config["DB_DESTINO"] ) );
-$old_site_walker    = new OldSiteWalker( databaseConnect( $config["DB_ORIGEN"] ), $config["WALKER_CONFIG"] );
+$wordpress_importer = new WordPressImporter( databaseConnect( $config["DB_DESTINO"] ), $config["WORDPRESS_IMPORTER"] );
+$old_site_walker    = new OldSiteWalker( databaseConnect( $config["DB_ORIGEN"] ), $config["WALKER"], $wordpress_importer );
 
 // SE REALIZA LA IMPORTACIÓN
 $old_site_walker->walkPosts();
