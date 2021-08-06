@@ -11,10 +11,18 @@ class WordPressImporter {
 
 
   ///////////////////////////////////////////////////////////////////
-  ///// TERMINOS Y CATEGORÏAS
+  ///// CATEGORÏAS Y TAGS
   //////////////////////
 
   public function insertCategory( $category ){
+    $this->_insertTermAndTaxonmy( $category, "TAXONOMY_CATEGORY");
+  }
+
+  public function insertTag( $tag ){
+    $this->_insertTermAndTaxonmy( $tag, "TAXONOMY_TAG");
+  }
+
+  protected function _insertTermAndTaxonmy( $category, $type ){
     //Se inserta el término en la DB
     $term_id = $this->insertTerm([
       'name'       => $category['name'],
@@ -23,7 +31,7 @@ class WordPressImporter {
     ]);
 
     if ( $term_id > 0 ){
-      print("  + Termino agregado a la DB, ID> ".$term_id."\n");
+      print("  + Termino agregado a la DB ".$type.", ID> ".$term_id."\n");
     } else {
       print("  E Termino no agregado a la DB"."\n");
       return 0;
@@ -32,7 +40,7 @@ class WordPressImporter {
     $taxonomy_id = $this->insertTermTaxonomy(
       [
         'term_id'     => $term_id,
-        'taxonomy'    => $this->importer_config['TERMS_TAXONOMY_TABLE']['TAXONOMY_CATEGORY'],
+        'taxonomy'    => $this->importer_config['TERMS_TAXONOMY_TABLE'][ $type ],
         'description' => '',
         'parent'      => 0,
         'count'       => 0
@@ -203,7 +211,11 @@ class WordPressImporter {
       //Se crean tags
       for ( $k = 0; $k < count($tags); $k++ ){
         $tag = $tags[$k];
-        print("    + Etiqueta encontrada, procesando > ".$tag."\n");
+        $tag_id = $this->insertTag([
+          'id'   => $category_id,
+          'name' => $tag
+        ]);
+        print("    + Etiqueta encontrada, procesando > ".$tag." ID > ".$tag_id."\n");
       }
     } else {
       print("   A Post procesado, ID> ".$post_f."\n");
