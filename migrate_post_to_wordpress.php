@@ -1,6 +1,7 @@
 <?php
 require "./Configuration.php";
 require "./WordPressImporter.php";
+require "./OldSiteWalker.php";
 
 $config = getConfig();
 
@@ -17,3 +18,6 @@ function databaseConnect($params){
 // SE INSTANCIA IMPORTADOR y EXPORTADOR
 $wordpress_importer = new WordPressImporter( databaseConnect( $config["DB_DESTINO"] ) );
 $old_site_walker    = new OldSiteWalker( databaseConnect( $config["DB_ORIGEN"] ) );
+
+// SE REALIZA LA IMPORTACIÓN
+$old_site_walker->walkPosts();
