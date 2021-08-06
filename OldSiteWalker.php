@@ -80,7 +80,7 @@ class OldSiteWalker {
   protected function _getPostsFromCategory( $category_id ){
     $table_name   = $this->walker_config['POSTS_TABLE']['TABLE_NAME'];
     $cat_id_field = $this->walker_config['POSTS_TABLE']['CATEGORY_ID_FIELD'];
-    $sql          = "SELECT * FROM `$table_name` WHERE `$cat_id_field` = :category_id";
+    $sql          = "SELECT * FROM `$table_name` WHERE `$cat_id_field` = :category_id AND eliminado = 0 AND habilitado = 1";
     $query        = $this->db_origen->prepare( $sql );
     $query->execute([':category_id'=> $category_id]);
     return $query->fetchAll(PDO::FETCH_OBJ);
