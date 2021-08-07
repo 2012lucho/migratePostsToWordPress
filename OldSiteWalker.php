@@ -19,7 +19,7 @@ class OldSiteWalker {
     for( $c=0; $c < count($this->categories); $c++ ){
       $category = $this->categories[ $c ];
       print('> Procesando categoría: '.$category[ $this->walker_config['CATEGORY_TABLE']['CATEGORY_NAME_FIELD'] ].' id: '.$category['id']."\n");
-      $this->wordpress_importer->insertCategory( [
+      $category_inserted = $this->wordpress_importer->insertCategory( [
         'id'   => $category['id'],
         'name' => $category[ $this->walker_config['CATEGORY_TABLE']['CATEGORY_NAME_FIELD'] ]
       ]);
@@ -30,11 +30,46 @@ class OldSiteWalker {
       //Se recorren los posts
       for ( $d=0; $d < count($category_posts); $d++ ){
         $post = $category_posts[$d];
-
+        $this->wordpress_importer->insertPost( [
+            'post_author'           => 1,
+            'post_date'             => $post->fecha,
+            'post_date_gmt'         => $this->_getTimeGMT( $post->fecha ),
+            'post_content'          => $post->contenido,
+            'post_title'            => $post->titulo,
+            'post_excerpt'          => $post->subtitulo,
+            'post_status'           => 'publish',
+            'comment_status'        => 'closed',
+            'ping_status'           => 'closed',
+            'post_password'         => '',
+            'post_name'             => $post->titulo,
+            'to_ping'               => '',
+            'pinged'                => '',
+            'post_modified'         => $post->fecha,
+            'post_modified_gmt'     => $this->_getTimeGMT( $post->fecha ),
+            'post_content_filtered' => '',
+            'post_parent'           => 0,
+            'guid'                  => '', //actualizar  post creacion del registro
+            'menu_order'            => 0,
+            'post_type'             => 'post',
+            'post_mime_type'        => '',
+            'comment_count'         => 0,
+            'pie_imagen'            => $post->pie_imagen,
+            'imagen'                => $post->imagen
+        ], $category_inserted, $this->_getTagsFromTagsString($post->keywords) );
       }
 
       print("\n");
     }
+  }
+
+  protected function _getTagsFromTagsString( $tagString ){
+    return explode( $this->walker_config['KEYWORD_DIVIDER'], $tagString);
+  }
+
+  protected function _getTimeGMT( $dateTime ){
+       $dateTime = new \DateTime($dateTime);
+       $dateTime->modify('+ '.(-$this->walker_config['GMT_ZONE']).' hour');
+       return $dateTime->format('Y-m-d H-i-s');
   }
 
   protected function _getCategories(){
@@ -47,7 +82,7 @@ class OldSiteWalker {
   protected function _getPostsFromCategory( $category_id ){
     $table_name   = $this->walker_config['POSTS_TABLE']['TABLE_NAME'];
     $cat_id_field = $this->walker_config['POSTS_TABLE']['CATEGORY_ID_FIELD'];
-    $sql          = "SELECT * FROM `$table_name` WHERE `$cat_id_field` = :category_id";
+    $sql          = "SELECT * FROM `$table_name` WHERE `$cat_id_field` = :category_id AND eliminado = 0 AND habilitado = 1";
     $query        = $this->db_origen->prepare( $sql );
     $query->execute([':category_id'=> $category_id]);
     return $query->fetchAll(PDO::FETCH_OBJ);
