@@ -164,6 +164,68 @@ class WordPressImporter {
   public function insertPost( $post, $category_id, $tags ){
     $post['post_name'] = $this->getSlug($post['post_name']);
 
+    $post_f = $this->insertPostElement( $post );
+
+    if ($post_f > 0){
+      //Se asocian los posts con sus respectivas categorías
+      print("   + Post procesado (asociado con su categoría), ID> ".$post_f."\n");
+      $relation_sh_id = $this->insertTermRelationship( [
+        'object_id'        => $post_f,
+        'term_taxonomy_id' => $category_id,
+        'term_order'       => 0
+      ]);
+
+      //Se asocian los posts con sus respectivos tags
+      for ( $k = 0; $k < count($tags); $k++ ){
+        $tag = $tags[$k];
+        $tag_id = $this->insertTag([
+          'id'   => $category_id,
+          'name' => $tag
+        ]);
+
+        $relation_sh_id = $this->insertTermRelationship( [
+          'object_id'        => $post_f,
+          'term_taxonomy_id' => $tag_id,
+          'term_order'       => 0
+        ]);
+        print("    + Etiqueta encontrada, procesando > ".$tag." ID > ".$tag_id."\n");
+
+        //Se asocian las imágenes con el post
+        $post_image_id = $this->insertImage([
+          'post_author'           => $post['post_author'],
+          'post_date'             => $post['post_date'],
+          'post_date_gmt'         => $post['post_date_gmt'],
+          'post_content'          => '',
+          'post_title'            => $this->getSlug($post['pie_imagen']),
+          'post_excerpt'          => $post['pie_imagen'],
+          'post_status'           => 'inherit',
+          'comment_status'        => 'close',
+          'ping_status'           => 'close',
+          'post_password'         => $post['post_password'],
+          'post_name'             => $this->getSlug($post['pie_imagen']),
+          'to_ping'               => '',
+          'pinged'                => '',
+          'post_modified'         => $post['post_modified'],
+          'post_modified_gmt'     => $post['post_modified_gmt'],
+          'post_content_filtered' => '',
+          'post_parent'           => $post_f,
+          'guid'                  => $post['guid'], //actualizar  post creacion del registro
+          'menu_order'            => 0,
+          'post_type'             => 'attachment',
+          'post_mime_type'        => 'image/jpeg',
+          'comment_count'         => 0,
+          'imagen'                => $post['imagen'],
+        ]);
+
+      }
+    } else {
+      print("   A Post procesado, ID> ".$post_f."\n");
+    }
+
+    return $post_f;
+  }
+
+  protected function insertPostElement( $post ){
     $post_f = $this->getPostIdByTitle( $post['post_title'] );
     if ( $post_f == 0 ){
       $table_name   = $this->importer_config['POSTS_TABLE']['TABLE_NAME'];
@@ -198,35 +260,6 @@ class WordPressImporter {
       ]);
       $post_f = $this->db_destino->lastInsertId();
     }
-
-    if ($post_f > 0){
-      //Se asocian los posts con sus respectivas categorías
-      print("   + Post procesado (asociado con su categoría), ID> ".$post_f."\n");
-      $relation_sh_id = $this->insertTermRelationship( [
-        'object_id'        => $post_f,
-        'term_taxonomy_id' => $category_id,
-        'term_order'       => 0
-      ]);
-
-      //Se asocian los posts con sus respectivos tags
-      for ( $k = 0; $k < count($tags); $k++ ){
-        $tag = $tags[$k];
-        $tag_id = $this->insertTag([
-          'id'   => $category_id,
-          'name' => $tag
-        ]);
-
-        $relation_sh_id = $this->insertTermRelationship( [
-          'object_id'        => $post_f,
-          'term_taxonomy_id' => $tag_id,
-          'term_order'       => 0
-        ]);
-        print("    + Etiqueta encontrada, procesando > ".$tag." ID > ".$tag_id."\n");
-      }
-    } else {
-      print("   A Post procesado, ID> ".$post_f."\n");
-    }
-
     return $post_f;
   }
 
@@ -250,7 +283,51 @@ class WordPressImporter {
   ///// IMÄGENES Y METADATA
   //////////////////////
 
-  public function insertImage(){
+  public function insertImage( $image_data ){
+    print("   D Descargando imagen de POST, ID> ".$image_data['imagen']."\n");
+
+    if ( strpos( $image_data['imagen'], $this->importer_config['SITE_URL'] ) === false ){
+      print("   A El recurso no se pertenece al sitio ID> ".$image_data['imagen']."\n");
+    } else {
+      //se inserta la imagen como un nuevo post
+      $this->insertPostElement( $image_data );
+
+      //se hace peticion curl para obtener la imagen
+      $ch = curl_init();
+      curl_setopt($ch, CURLOPT_URL, $image_data['imagen']);
+      curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+      curl_setopt($ch, CURLOPT_SSLVERSION,3);
+      curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
+      curl_setopt($ch, CURLOPT_TIMEOUT, 400);
+      $curlDatos = curl_exec ($ch);
+      curl_close ($ch);
+
+      //se almacena la imagen siguiendo una estructura similar al sitio de wordpress
+
+      //Creación de estructura de directorios de acuerdo a la fecha
+      $strTime = strtotime($image_data['post_date']);
+      $rutaCarpeta = $this->importer_config['WP_CONTENT_DIR']."/".date( "Y", $strTime )."/".date( "m", $strTime );
+      if (!file_exists($rutaCarpeta)) {
+          mkdir($rutaCarpeta, 0777, true);
+      }
+
+      $imgExplode = explode("/", $image_data['imagen']);
+      $fileName   = array_pop($imgExplode);
+      $rutaImg    = $rutaCarpeta.'/'.$fileName;
+
+      //Se verifica que la ruta se corresponda a una imagen
+      $extension_explode = explode( ".", $fileName );
+      $extension_explode = array_pop($extension_explode);
+      if ($curlDatos !== false && ($extension_explode == 'gif' || $extension_explode == 'jpg' || $extension_explode == 'png' || $extension_explode == 'webm') ){
+        $miarchivo  = fopen($rutaImg, "w+");
+
+        // Insertamos en la carpeta la imagen
+        fputs($miarchivo, $curlDatos);
+        fclose($miarchivo);
+      } else {
+        print("   Err El recurso no se trata de una imagen! o no hay conexion a internet ?¿> ".$fileName."\n");
+      }
+    }
 
   }
 

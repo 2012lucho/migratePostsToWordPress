@@ -52,7 +52,9 @@ class OldSiteWalker {
             'menu_order'            => 0,
             'post_type'             => 'post',
             'post_mime_type'        => '',
-            'comment_count'         => 0
+            'comment_count'         => 0,
+            'pie_imagen'            => $post->pie_imagen,
+            'imagen'                => $post->imagen
         ], $category_inserted, $this->_getTagsFromTagsString($post->keywords) );
       }
 
