@@ -292,41 +292,50 @@ class WordPressImporter {
       //se inserta la imagen como un nuevo post
       $this->insertPostElement( $image_data );
 
-      //se hace peticion curl para obtener la imagen
-      $ch = curl_init();
-      curl_setopt($ch, CURLOPT_URL, $image_data['imagen']);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-      curl_setopt($ch, CURLOPT_SSLVERSION,3);
-      curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
-      curl_setopt($ch, CURLOPT_TIMEOUT, 400);
-      $curlDatos = curl_exec ($ch);
-      curl_close ($ch);
-
-      //se almacena la imagen siguiendo una estructura similar al sitio de wordpress
-
       //Creación de estructura de directorios de acuerdo a la fecha
       $strTime = strtotime($image_data['post_date']);
       $rutaCarpeta = $this->importer_config['WP_CONTENT_DIR']."/".date( "Y", $strTime )."/".date( "m", $strTime );
-      if (!file_exists($rutaCarpeta)) {
-          mkdir($rutaCarpeta, 0777, true);
-      }
 
+      //Se comprueba si la imagen existe para no descargarla de nuevo
       $imgExplode = explode("/", $image_data['imagen']);
       $fileName   = array_pop($imgExplode);
       $rutaImg    = $rutaCarpeta.'/'.$fileName;
 
-      //Se verifica que la ruta se corresponda a una imagen
-      $extension_explode = explode( ".", $fileName );
-      $extension_explode = array_pop($extension_explode);
-      if ($curlDatos !== false && ($extension_explode == 'gif' || $extension_explode == 'jpg' || $extension_explode == 'png' || $extension_explode == 'webm') ){
-        $miarchivo  = fopen($rutaImg, "w+");
-
-        // Insertamos en la carpeta la imagen
-        fputs($miarchivo, $curlDatos);
-        fclose($miarchivo);
+      if ( file_exists($rutaImg) ){
+        print("   = El recurso ya fue descargado! > ".$fileName."\n");
       } else {
-        print("   Err El recurso no se trata de una imagen! o no hay conexion a internet ?¿> ".$fileName."\n");
+
+        //se hace peticion curl para obtener la imagen
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $image_data['imagen']);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_SSLVERSION,3);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 400);
+        $curlDatos = curl_exec ($ch);
+        curl_close ($ch);
+
+        if (!file_exists($rutaCarpeta)) {
+            mkdir($rutaCarpeta, 0777, true);
+        }
+
+        //Se verifica que la ruta se corresponda a una imagen
+        $extension_explode = explode( ".", $fileName );
+        $extension_explode = array_pop($extension_explode);
+        if ($curlDatos !== false && ($extension_explode == 'gif' || $extension_explode == 'jpeg' || $extension_explode == 'jpg' || $extension_explode == 'png' || $extension_explode == 'webm') ){
+          $miarchivo  = fopen($rutaImg, "w+");
+
+          // Insertamos en la carpeta la imagen
+          fputs($miarchivo, $curlDatos);
+          fclose($miarchivo);
+
+          //Si llegamos aca sin problemas, se agrega el registro en la tabla wp_postmeta
+        } else {
+          print("   Err El recurso no se trata de una imagen! o no hay conexion a internet ?¿> ".$fileName."\n");
+        }
+
       }
+
     }
 
   }
