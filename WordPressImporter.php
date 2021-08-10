@@ -224,9 +224,9 @@ class WordPressImporter {
             'meta_key'   => '_thumbnail_id',
             'meta_value' => $post_image_id,
           ]);
-          
+
           $this->insertPostMeta([
-            'post_id'    => $post_f,
+            'post_id'    => $post_image_id,
             'meta_key'   => '_wp_attached_file',
             'meta_value' => str_replace( $this->importer_config['WP_CONTENT_DIR']."/", '', $this->last_image_path ),
           ]);
