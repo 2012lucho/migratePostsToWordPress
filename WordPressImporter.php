@@ -252,7 +252,7 @@ class WordPressImporter {
         ':comment_status'        => $post['comment_status'],
         ':ping_status'           => $post['ping_status'],
         ':post_password'         => $post['post_password'],
-        ':post_name'             => truncate( $post['post_name'],  $this->importer_config['POSTS_TABLE']['POST_NAME_LENGTH']),
+        ':post_name'             => $this->truncate( $post['post_name'],  $this->importer_config['POSTS_TABLE']['POST_NAME_LENGTH']),
         ':to_ping'               => $post['to_ping'],
         ':pinged'                => $post['pinged'],
         ':post_modified'         => $post['post_modified'],
