@@ -3,6 +3,7 @@
 class WordPressImporter {
   protected $db_destino;
   protected $importer_config;
+  protected $last_image_path;
 
   function __construct( $DB_DESTINO, $importer_config ) {
     $this->db_destino      = $DB_DESTINO;
@@ -223,6 +224,12 @@ class WordPressImporter {
             'meta_key'   => '_thumbnail_id',
             'meta_value' => $post_image_id,
           ]);
+          
+          $this->insertPostMeta([
+            'post_id'    => $post_f,
+            'meta_key'   => '_wp_attached_file',
+            'meta_value' => str_replace( $this->importer_config['WP_CONTENT_DIR']."/", '', $this->last_image_path ),
+          ]);
         }
       }
     } else {
@@ -305,6 +312,8 @@ class WordPressImporter {
       $fileName   = array_pop($imgExplode);
       $rutaImg    = $rutaCarpeta.'/'.$fileName;
 
+      $this->last_image_path = $rutaImg;
+
       if ( file_exists($rutaImg) ){
         print("   = El recurso ya fue descargado! > ".$fileName."\n");
         return $this->getPostIdByTitle( $image_data['post_title'] );
@@ -337,7 +346,6 @@ class WordPressImporter {
           //se inserta la imagen como un nuevo post
           $image_data['post_mime_type'] = image_type_to_mime_type(exif_imagetype($miarchivo) );
           $post_image_id                = $this->insertPostElement( $image_data );
-
           return $post_image_id;
         } else {
           print("   Err El recurso no se trata de una imagen! o no hay conexion a internet ?¿> ".$fileName."\n");
@@ -350,7 +358,7 @@ class WordPressImporter {
   }
 
   public function insertPostMeta( $postMeta ){
-    $post_meta_id = $this->getPostMetaByPostId( $postMeta['post_id'] );
+    $post_meta_id = $this->getPostMetaByPostIdAKey( $postMeta['post_id'], $postMeta['meta_key'] );
     if ( $post_meta_id == 0 ){
       print("   + Se agregó registro post_meta "."\n");
       $table_name   = $this->importer_config['POST_META']['TABLE_NAME'];
@@ -368,12 +376,12 @@ class WordPressImporter {
     }
   }
 
-  public function getPostMetaByPostId( $post_id ){
+  public function getPostMetaByPostIdAKey( $post_id, $meta_key ){
     $table_name     = $this->importer_config['POST_META']['TABLE_NAME'];
     $post_id_field  = $this->importer_config['POST_META']['POST_ID_FIELD'];
-    $sql          = "SELECT * FROM `$table_name` WHERE `$post_id_field` = :post_id AND meta_key='_thumbnail_id'";
+    $sql          = "SELECT * FROM `$table_name` WHERE `$post_id_field` = :post_id AND meta_key=:meta_key";
     $query        = $this->db_destino->prepare( $sql );
-    $query->execute([':post_id'=> $post_id]);
+    $query->execute([':post_id'=> $post_id, ':meta_key' => $meta_key]);
     $query = $query->fetchAll(PDO::FETCH_OBJ);
 
     if ( count($query) > 0){
