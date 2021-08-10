@@ -212,7 +212,7 @@ class WordPressImporter {
           'guid'                  => $post['guid'], //actualizar  post creacion del registro
           'menu_order'            => 0,
           'post_type'             => 'attachment',
-          'post_mime_type'        => 'image/jpeg',
+          'post_mime_type'        => '', //mas adelante se define de acuerdo al archivo descargado
           'comment_count'         => 0,
           'imagen'                => $post['imagen'],
         ], $post_f);
@@ -296,9 +296,6 @@ class WordPressImporter {
     if ( strpos( $image_data['imagen'], $this->importer_config['SITE_URL'] ) === false ){
       print("   A El recurso no se pertenece al sitio ID> ".$image_data['imagen']."\n");
     } else {
-      //se inserta la imagen como un nuevo post
-      $post_image_id = $this->insertPostElement( $image_data );
-
       //Creación de estructura de directorios de acuerdo a la fecha
       $strTime = strtotime($image_data['post_date']);
       $rutaCarpeta = $this->importer_config['WP_CONTENT_DIR']."/".date( "Y", $strTime )."/".date( "m", $strTime );
@@ -310,7 +307,7 @@ class WordPressImporter {
 
       if ( file_exists($rutaImg) ){
         print("   = El recurso ya fue descargado! > ".$fileName."\n");
-        return $post_image_id;
+        return $this->getPostIdByTitle( $image_data['post_title'] );
       } else {
 
         //se hace peticion curl para obtener la imagen
@@ -336,6 +333,10 @@ class WordPressImporter {
           // Insertamos en la carpeta la imagen
           fputs($miarchivo, $curlDatos);
           fclose($miarchivo);
+
+          //se inserta la imagen como un nuevo post
+          $image_data['post_mime_type'] = image_type_to_mime_type(exif_imagetype($miarchivo) );
+          $post_image_id                = $this->insertPostElement( $image_data );
 
           return $post_image_id;
         } else {
