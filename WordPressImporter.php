@@ -327,7 +327,7 @@ class WordPressImporter {
         //Se verifica que la ruta se corresponda a una imagen
         $extension_explode = explode( ".", $fileName );
         $extension_explode = array_pop($extension_explode);
-        if ($curlDatos !== false && ($extension_explode == 'gif' || $extension_explode == 'JPG' || $extension_explode == 'jpeg' || $extension_explode == 'jpg' || $extension_explode == 'png' || $extension_explode == 'webp') ){
+        if ($curlDatos !== false && ($extension_explode == 'gif' || $extension_explode == 'JPG' || $extension_explode == 'jpe' || $extension_explode == 'jpeg' || $extension_explode == 'jpg' || $extension_explode == 'png' || $extension_explode == 'webp') ){
           $miarchivo  = fopen($rutaImg, "w+");
 
           // Insertamos en la carpeta la imagen
