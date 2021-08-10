@@ -252,7 +252,7 @@ class WordPressImporter {
         ':comment_status'        => $post['comment_status'],
         ':ping_status'           => $post['ping_status'],
         ':post_password'         => $post['post_password'],
-        ':post_name'             => $post['post_name'],
+        ':post_name'             => truncate( $post['post_name'],  $this->importer_config['POSTS_TABLE']['POST_NAME_LENGTH']),
         ':to_ping'               => $post['to_ping'],
         ':pinged'                => $post['pinged'],
         ':post_modified'         => $post['post_modified'],
@@ -330,7 +330,7 @@ class WordPressImporter {
         //Se verifica que la ruta se corresponda a una imagen
         $extension_explode = explode( ".", $fileName );
         $extension_explode = array_pop($extension_explode);
-        if ($curlDatos !== false && ($extension_explode == 'gif' || $extension_explode == 'JPG' || $extension_explode == 'jpeg' || $extension_explode == 'jpg' || $extension_explode == 'png' || $extension_explode == 'webm') ){
+        if ($curlDatos !== false && ($extension_explode == 'gif' || $extension_explode == 'JPG' || $extension_explode == 'jpeg' || $extension_explode == 'jpg' || $extension_explode == 'png' || $extension_explode == 'webp') ){
           $miarchivo  = fopen($rutaImg, "w+");
 
           // Insertamos en la carpeta la imagen
@@ -390,4 +390,14 @@ class WordPressImporter {
      $slug=preg_replace('/[^A-Za-z0-9-]+/', '-', $string);
      return $slug;
   }
+
+  protected function truncate($text, $chars = 120) {
+    if(strlen($text) > $chars) {
+        $text = $text.' ';
+        $text = substr($text, 0, $chars);
+        $text = substr($text, 0, strrpos($text ,' '));
+        $text = $text.'...';
+    }
+    return $text;
+}
 }
