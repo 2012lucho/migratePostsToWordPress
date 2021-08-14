@@ -3,7 +3,6 @@
 class WordPressImporter {
   protected $db_destino;
   protected $importer_config;
-  protected $last_image_path;
 
   function __construct( $DB_DESTINO, $importer_config ) {
     $this->db_destino      = $DB_DESTINO;
@@ -191,52 +190,175 @@ class WordPressImporter {
         ]);
         print("    + Etiqueta encontrada, procesando > ".$tag." ID > ".$tag_id."\n");
 
-        //Se asocian las imágenes con el post
-        $post_image_id = $this->insertImage([
-          'post_author'           => $post['post_author'],
-          'post_date'             => $post['post_date'],
-          'post_date_gmt'         => $post['post_date_gmt'],
-          'post_content'          => '',
-          'post_title'            => $this->getSlug($post['pie_imagen']),
-          'post_excerpt'          => $post['pie_imagen'],
-          'post_status'           => 'inherit',
-          'comment_status'        => 'close',
-          'ping_status'           => 'close',
-          'post_password'         => $post['post_password'],
-          'post_name'             => $this->getSlug($post['pie_imagen']),
-          'to_ping'               => '',
-          'pinged'                => '',
-          'post_modified'         => $post['post_modified'],
-          'post_modified_gmt'     => $post['post_modified_gmt'],
-          'post_content_filtered' => '',
-          'post_parent'           => $post_f,
-          'guid'                  => $post['guid'], //actualizar  post creacion del registro
-          'menu_order'            => 0,
-          'post_type'             => 'attachment',
-          'post_mime_type'        => '', //mas adelante se define de acuerdo al archivo descargado
-          'comment_count'         => 0,
-          'imagen'                => $post['imagen'],
-        ], $post_f);
-
-        if ($post_image_id != 0){
-          $this->insertPostMeta([
-            'post_id'    => $post_f,
-            'meta_key'   => '_thumbnail_id',
-            'meta_value' => $post_image_id,
-          ]);
-
-          $this->insertPostMeta([
-            'post_id'    => $post_image_id,
-            'meta_key'   => '_wp_attached_file',
-            'meta_value' => str_replace( $this->importer_config['WP_CONTENT_DIR']."/", '', $this->last_image_path ),
-          ]);
-        }
       }
+
+      //Se asocian las imágenes con el post
+      $post_image_info = $this->insertImage([
+        'post_author'           => $post['post_author'],
+        'post_date'             => $post['post_date'],
+        'post_date_gmt'         => $post['post_date_gmt'],
+        'post_content'          => '',
+        'post_title'            => $this->getSlug($post['pie_imagen']),
+        'post_excerpt'          => $post['pie_imagen'],
+        'post_status'           => 'inherit',
+        'comment_status'        => 'close',
+        'ping_status'           => 'close',
+        'post_password'         => $post['post_password'],
+        'post_name'             => $this->getSlug($post['pie_imagen']),
+        'to_ping'               => '',
+        'pinged'                => '',
+        'post_modified'         => $post['post_modified'],
+        'post_modified_gmt'     => $post['post_modified_gmt'],
+        'post_content_filtered' => '',
+        'post_parent'           => $post_f,
+        'guid'                  => $post['guid'], //actualizar  post creacion del registro
+        'menu_order'            => 0,
+        'post_type'             => 'attachment',
+        'post_mime_type'        => '', //mas adelante se define de acuerdo al archivo descargado
+        'comment_count'         => 0,
+        'imagen'                => $post['imagen'],
+      ], $post_f);
+
+      if ($post_image_info['post_id'] != 0){
+        $this->insertPostMeta([
+          'post_id'    => $post_f,
+          'meta_key'   => '_thumbnail_id',
+          'meta_value' => $post_image_info['post_id'],
+        ]);
+
+        $this->insertPostMeta([
+          'post_id'    => $post_image_info['post_id'],
+          'meta_key'   => '_wp_attached_file',
+          'meta_value' => $this->getInternalUrlFromPath( $post_image_info['path'] ),
+        ]);
+
+        //se generan las miniaturas
+        $thumbnails = [];
+        for ( $c=0; $c < count($this->importer_config['THUMBNAILS']); $c++ ){
+          print("   Generando miniatura ".$this->importer_config['THUMBNAILS'][$c]['NAME']."\n");
+          $thumbnails[ $c ]['width']  = $this->importer_config['THUMBNAILS'][$c]['WIDTH'];
+          $thumbnails[ $c ]['height'] = $this->importer_config['THUMBNAILS'][$c]['HEIGHT'];
+          $thumbnails[ $c ]['name']   = $this->importer_config['THUMBNAILS'][$c]['NAME'];
+          $thumbnails[ $c ]['img']    = $this->newResizedImage(
+            $post_image_info['name'],
+            $post_image_info['path'],
+            $thumbnails[ $c ]['width'],
+            $thumbnails[ $c ]['height']
+          );
+          //las miniaturas se guardaran en formato jpg en todos los casos para hacer las cosas de forma mas practica
+          $thumbnails[ $c ]['file'] = $this->replaceFileExt( $thumbnails[ $c ]['name'].'_'.$post_image_info['name'], 'jpg');
+          imagejpeg($thumbnails[ $c ]['img'], $post_image_info['directory'].'/'.$thumbnails[ $c ]['file']);
+          $thumbnails[ $c ]['mime-type'] = 'image/jpeg';
+        }
+
+        //Metadata de imagenes
+        $this->insertPostMeta([
+          'post_id'    => $post_image_info['post_id'],
+          'meta_key'   => '_wp_attachment_metadata',
+          'meta_value' => $this->getLastImageWpAttachmentMetaData( $post_image_info['path'], $thumbnails ),
+        ]);
+      }
+
     } else {
       print("   A Post procesado, ID> ".$post_f."\n");
     }
 
     return $post_f;
+  }
+
+  protected function replaceFileExt( $fileName, $ext ){
+    $nameExplode = explode( '.', $fileName );
+    $len         = count($nameExplode);
+    if ( $len == 0){ //si llega string vacio
+      return '';
+    }
+
+    if ( $len == 1 ){ // si el archivo no tiene extension
+      return $filename.'.'.$ext;
+    }
+
+    if ( $len > 1){ // en caso que el archivo tenga extension
+      $nameExplode[ $len - 1 ] = $ext;
+      return implode( '.', $nameExplode );
+    }
+
+  }
+
+  protected function newResizedImage($imgName, $imgPath, $xmax, $ymax){
+        $ext = explode(".", $imgName);
+        $ext = $ext[count($ext)-1];
+
+        if($ext == "jpg" || $ext == 'JPG' || $ext == "jpe" || $ext == "jpeg")
+            $imagen = imagecreatefromjpeg($imgPath);
+        elseif($ext == "png")
+            $imagen = imagecreatefrompng($imgPath);
+        elseif($ext == "gif")
+            $imagen = imagecreatefromgif($imgPath);
+
+        $x = imagesx($imagen);
+        $y = imagesy($imagen);
+
+        if($x <= $xmax && $y <= $ymax){
+            return $imagen;
+        }
+
+        if($x >= $y) {
+            $nuevax = $xmax;
+            $nuevay = $nuevax * $y / $x;
+        }
+        else {
+            $nuevay = $ymax;
+            $nuevax = $x / $y * $nuevay;
+        }
+
+        $img2 = imagecreatetruecolor($nuevax, $nuevay);
+        imagecopyresized($img2, $imagen, 0, 0, 0, 0, floor($nuevax), floor($nuevay), $x, $y);
+        return $img2;
+  }
+
+  protected function getLastImageWpAttachmentMetaData( $path, $thumbnails ){
+    $imageData = [
+      'width'  => '',
+      'height' => '',
+      'file'   => '',
+      'sizes'  => [],
+      'image_meta' => [
+        'aperture'          => '0', //en el serializado está como string
+        'credit'            => '',
+        'camera'            => '',
+        'caption'           => '',
+        'created_timestamp' => '0',
+        'copyright'         => '',
+        'focal_length'      => '0',
+        'iso'               => '0',
+        'shutter_speed'     => '0',
+        'title'             => '',
+        'orientation'       => '0',
+        'keywords'          => []
+      ]
+    ];
+
+    if ( file_exists( $path ) ){
+      $imgSize = getimagesize($path);
+      $imageData["width"]  = $imgSize[0];
+      $imageData["height"] = $imgSize[1];
+      $imageData["file"]   = $this->getInternalUrlFromPath( $path );
+
+      for ( $c=0; $c < count($thumbnails); $c++ ){
+        $imageData["sizes"][ $thumbnails[$c]['name'] ] = [
+          'file'      => $thumbnails[ $c ]['file'],
+          'width'     => $thumbnails[ $c ]['width'],
+          'height'    => $thumbnails[ $c ]['height'],
+          'mime-type' => $thumbnails[ $c ]['mime-type'],
+        ];
+      }
+    }
+
+    return serialize( $imageData );
+  }
+
+  protected function getInternalUrlFromPath( $path ){
+    return str_replace( $this->importer_config['WP_CONTENT_DIR']."/", '', $path );
   }
 
   protected function insertPostElement( $post ){
@@ -297,7 +419,19 @@ class WordPressImporter {
   ///// IMÄGENES Y METADATA
   //////////////////////
 
+  protected function getImageNameFURL( $url ){
+    $imgExplode = explode( "/", $url );
+    return array_pop($imgExplode);
+  }
+
   public function insertImage( $image_data, $post_id ){
+    $imgInfo = [
+      'name'      => '',
+      'path'      => '',
+      'directory' => '',
+      'post_id'   => '',
+      'mime_type' => ''
+    ];
     print("   D Descargando imagen de POST, ID> ".$image_data['imagen']."\n");
 
     if ( strpos( $image_data['imagen'], $this->importer_config['SITE_URL'] ) === false ){
@@ -305,20 +439,17 @@ class WordPressImporter {
     } else {
       //Creación de estructura de directorios de acuerdo a la fecha
       $strTime = strtotime($image_data['post_date']);
-      $rutaCarpeta = $this->importer_config['WP_CONTENT_DIR']."/".date( "Y", $strTime )."/".date( "m", $strTime );
+      $imgInfo['directory'] = $this->importer_config['WP_CONTENT_DIR']."/".date( "Y", $strTime )."/".date( "m", $strTime );
 
       //Se comprueba si la imagen existe para no descargarla de nuevo
-      $imgExplode = explode("/", $image_data['imagen']);
-      $fileName   = array_pop($imgExplode);
-      $rutaImg    = $rutaCarpeta.'/'.$fileName;
+      $imgInfo['name'] = $this->getImageNameFURL( $image_data['imagen'] );
 
-      $this->last_image_path = $rutaImg;
+      $imgInfo['path'] = $imgInfo['directory'].'/'.$imgInfo['name'];
 
-      if ( file_exists($rutaImg) ){
-        print("   = El recurso ya fue descargado! > ".$fileName."\n");
-        return $this->getPostIdByTitle( $image_data['post_title'] );
+      if ( file_exists($imgInfo['path']) ){
+        print("   = El recurso ya fue descargado! > ".$imgInfo['name']."\n");
+        $imgInfo['post_id'] = $this->getPostIdByTitle( $image_data['post_title'] );
       } else {
-
         //se hace peticion curl para obtener la imagen
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $image_data['imagen']);
@@ -329,32 +460,32 @@ class WordPressImporter {
         $curlDatos = curl_exec ($ch);
         curl_close ($ch);
 
-        if (!file_exists($rutaCarpeta)) {
-            mkdir($rutaCarpeta, 0777, true);
+        if (!file_exists($imgInfo['directory'])) {
+            mkdir($imgInfo['directory'], 0777, true);
         }
+      }
 
-        //Se verifica que la ruta se corresponda a una imagen
-        $extension_explode = explode( ".", $fileName );
-        $extension_explode = array_pop($extension_explode);
-        if ($curlDatos !== false && ($extension_explode == 'gif' || $extension_explode == 'JPG' || $extension_explode == 'jpe' || $extension_explode == 'jpeg' || $extension_explode == 'jpg' || $extension_explode == 'png' || $extension_explode == 'webp') ){
-          $miarchivo  = fopen($rutaImg, "w+");
+      //Se verifica que la ruta se corresponda a una imagen
+      $extension_explode = explode( ".", $imgInfo['name'] );
+      $extension_explode = array_pop($extension_explode);
+      if ($curlDatos !== false && ($extension_explode == 'gif' || $extension_explode == 'JPG' || $extension_explode == 'jpe' || $extension_explode == 'jpeg' || $extension_explode == 'jpg' || $extension_explode == 'png' || $extension_explode == 'webp') ){
+        $miarchivo  = fopen($imgInfo['path'], "w+");
 
-          // Insertamos en la carpeta la imagen
-          fputs($miarchivo, $curlDatos);
-          fclose($miarchivo);
+        // Insertamos en la carpeta la imagen
+        fputs($miarchivo, $curlDatos);
+        fclose($miarchivo);
 
-          //se inserta la imagen como un nuevo post
-          $image_data['post_mime_type'] = image_type_to_mime_type(exif_imagetype($miarchivo) );
-          $post_image_id                = $this->insertPostElement( $image_data );
-          return $post_image_id;
-        } else {
-          print("   Err El recurso no se trata de una imagen! o no hay conexion a internet ?¿> ".$fileName."\n");
-        }
-
+        //se inserta la imagen como un nuevo post
+        $imgInfo['mime_type']         = image_type_to_mime_type(exif_imagetype($imgInfo['path']) );
+        $image_data['post_mime_type'] = $imgInfo['mime_type'];
+        $imgInfo['post_id']           = $this->insertPostElement( $image_data );
+        return $imgInfo;
+      } else {
+        print("   Err El recurso no se trata de una imagen! o no hay conexion a internet ?¿> ".$imgInfo['name']."\n");
       }
 
     }
-    return 0;
+    return $imgInfo;
   }
 
   public function insertPostMeta( $postMeta ){
