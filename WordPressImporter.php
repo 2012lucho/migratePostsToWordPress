@@ -463,27 +463,25 @@ class WordPressImporter {
         if (!file_exists($imgInfo['directory'])) {
             mkdir($imgInfo['directory'], 0777, true);
         }
+
+        //Se verifica que la ruta se corresponda a una imagen
+        $extension_explode = explode( ".", $imgInfo['name'] );
+        $extension_explode = array_pop($extension_explode);
+        if ($curlDatos !== false && ($extension_explode == 'gif' || $extension_explode == 'JPG' || $extension_explode == 'jpe' || $extension_explode == 'jpeg' || $extension_explode == 'jpg' || $extension_explode == 'png' || $extension_explode == 'webp') ){
+          $miarchivo  = fopen($imgInfo['path'], "w+");
+
+          // Insertamos en la carpeta la imagen
+          fputs($miarchivo, $curlDatos);
+          fclose($miarchivo);
+        } else {
+          print("   Err El recurso no se trata de una imagen! o no hay conexion a internet ?¿> ".$imgInfo['name']."\n");
+        }
       }
 
-      //Se verifica que la ruta se corresponda a una imagen
-      $extension_explode = explode( ".", $imgInfo['name'] );
-      $extension_explode = array_pop($extension_explode);
-      if ($curlDatos !== false && ($extension_explode == 'gif' || $extension_explode == 'JPG' || $extension_explode == 'jpe' || $extension_explode == 'jpeg' || $extension_explode == 'jpg' || $extension_explode == 'png' || $extension_explode == 'webp') ){
-        $miarchivo  = fopen($imgInfo['path'], "w+");
-
-        // Insertamos en la carpeta la imagen
-        fputs($miarchivo, $curlDatos);
-        fclose($miarchivo);
-
-        //se inserta la imagen como un nuevo post
-        $imgInfo['mime_type']         = image_type_to_mime_type(exif_imagetype($imgInfo['path']) );
-        $image_data['post_mime_type'] = $imgInfo['mime_type'];
-        $imgInfo['post_id']           = $this->insertPostElement( $image_data );
-        return $imgInfo;
-      } else {
-        print("   Err El recurso no se trata de una imagen! o no hay conexion a internet ?¿> ".$imgInfo['name']."\n");
-      }
-
+      //se inserta la imagen como un nuevo post
+      $imgInfo['mime_type']         = image_type_to_mime_type(exif_imagetype($imgInfo['path']) );
+      $image_data['post_mime_type'] = $imgInfo['mime_type'];
+      $imgInfo['post_id']           = $this->insertPostElement( $image_data );
     }
     return $imgInfo;
   }
