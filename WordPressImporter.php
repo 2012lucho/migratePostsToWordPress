@@ -15,11 +15,11 @@ class WordPressImporter {
   //////////////////////
 
   public function insertCategory( $category ){
-    $this->_insertTermAndTaxonmy( $category, "TAXONOMY_CATEGORY");
+    return $this->_insertTermAndTaxonmy( $category, "TAXONOMY_CATEGORY");
   }
 
   public function insertTag( $tag ){
-    $this->_insertTermAndTaxonmy( $tag, "TAXONOMY_TAG");
+    return $this->_insertTermAndTaxonmy( $tag, "TAXONOMY_TAG");
   }
 
   protected function _insertTermAndTaxonmy( $category, $type ){
