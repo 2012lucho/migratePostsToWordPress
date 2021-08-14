@@ -488,7 +488,7 @@ class WordPressImporter {
 
   public function insertPostMeta( $postMeta ){
     $post_meta_id = $this->getPostMetaByPostIdAKey( $postMeta['post_id'], $postMeta['meta_key'] );
-    if ( $post_meta_id == 0 ){
+    if ( $post_meta_id == 0 && $postMeta['post_id'] != ''){
       print("   + Se agregó registro post_meta "."\n");
       $table_name   = $this->importer_config['POST_META']['TABLE_NAME'];
       $sql          = "INSERT INTO `$table_name` (post_id, meta_key, meta_value) VALUES (:post_id, :meta_key, :meta_value)";
