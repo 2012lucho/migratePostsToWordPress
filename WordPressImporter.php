@@ -245,10 +245,13 @@ class WordPressImporter {
             $thumbnails[ $c ]['width'],
             $thumbnails[ $c ]['height']
           );
+
           //las miniaturas se guardaran en formato jpg en todos los casos para hacer las cosas de forma mas practica
-          $thumbnails[ $c ]['file'] = $this->replaceFileExt( $thumbnails[ $c ]['name'].'_'.$post_image_info['name'], 'jpg');
-          imagejpeg($thumbnails[ $c ]['img'], $post_image_info['directory'].'/'.$thumbnails[ $c ]['file']);
-          $thumbnails[ $c ]['mime-type'] = 'image/jpeg';
+          if ($thumbnails[ $c ]['img'] != Null){
+            $thumbnails[ $c ]['file'] = $this->replaceFileExt( $thumbnails[ $c ]['name'].'_'.$post_image_info['name'], 'jpg');
+            imagejpeg($thumbnails[ $c ]['img'], $post_image_info['directory'].'/'.$thumbnails[ $c ]['file']);
+            $thumbnails[ $c ]['mime-type'] = 'image/jpeg';
+          }
         }
 
         //Metadata de imagenes
