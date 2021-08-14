@@ -55,15 +55,19 @@ class OldSiteWalker {
             'comment_count'         => 0,
             'pie_imagen'            => $post->pie_imagen,
             'imagen'                => $post->imagen
-        ], $category_inserted, $this->_getTagsFromTagsString($post->keywords) );
+        ], $category_inserted, $this->_getTagsFromTagsString([ $post->keywords, $post->personas ]) );
       }
 
       print("\n");
     }
   }
 
-  protected function _getTagsFromTagsString( $tagString ){
-    return explode( $this->walker_config['KEYWORD_DIVIDER'], $tagString);
+  protected function _getTagsFromTagsString( $tagStrings ){
+    $tags = [];
+    for ( $c=0; $c < count($tagStrings); $c++ ){
+      $tags = array_merge($tags, explode( $this->walker_config['KEYWORD_DIVIDER'], $tagStrings[$c]));
+    }
+    return array_unique($tags);
   }
 
   protected function _getTimeGMT( $dateTime ){
