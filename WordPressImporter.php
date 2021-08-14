@@ -295,6 +295,10 @@ class WordPressImporter {
         elseif($ext == "gif")
             $imagen = imagecreatefromgif($imgPath);
 
+        if ($image == Null){
+          return Null;
+        }
+
         $x = imagesx($imagen);
         $y = imagesy($imagen);
 
