@@ -291,6 +291,7 @@ class WordPressImporter {
         $ext = explode(".", $imgName);
         $ext = $ext[count($ext)-1];
 
+        $imagen = Null;
         if($ext == "jpg" || $ext == 'JPG' || $ext == "jpe" || $ext == "jpeg")
             $imagen = imagecreatefromjpeg($imgPath);
         elseif($ext == "png")
