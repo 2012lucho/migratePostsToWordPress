@@ -94,7 +94,7 @@ class WordPressImporter {
   }
 
   public function insertTermRelationship( $termRelationSh ){
-    $term_r_f = $this->getTermRelationshipByPostId( $termRelationSh['object_id'] );
+    $term_r_f = $this->getTermRelationshipByPostIdAndTaxonomyID( $termRelationSh['object_id'], $termRelationSh['term_taxonomy_id'] );
     if ( $term_r_f == 0 ){
       $table_name   = $this->importer_config['TERM_RELATIONSHIP']['TABLE_NAME'];
       $sql          = "INSERT INTO `$table_name` (object_id, term_taxonomy_id, term_order) VALUES (:object_id, :term_taxonomy_id, :term_order)";
@@ -110,12 +110,12 @@ class WordPressImporter {
     }
   }
 
-  public function getTermRelationshipByPostId( $post_id ){
+  public function getTermRelationshipByPostIdAndTaxonomyID( $post_id, $taxonomy_id ){
     $table_name     = $this->importer_config['TERM_RELATIONSHIP']['TABLE_NAME'];
     $post_id_field  = $this->importer_config['TERM_RELATIONSHIP']['POST_ID_FIELD'];
-    $sql          = "SELECT * FROM `$table_name` WHERE `$post_id_field` = :post_id";
+    $sql          = "SELECT * FROM `$table_name` WHERE `$post_id_field` = :post_id AND term_taxonomy_id = :taxonomy_id";
     $query        = $this->db_destino->prepare( $sql );
-    $query->execute([':post_id'=> $post_id]);
+    $query->execute([':post_id'=> $post_id, ':taxonomy_id' => $taxonomy_id]);
     $query = $query->fetchAll(PDO::FETCH_OBJ);
 
     if ( count($query) > 0){
@@ -179,7 +179,6 @@ class WordPressImporter {
       for ( $k = 0; $k < count($tags); $k++ ){
         $tag = $tags[$k];
         $tag_id = $this->insertTag([
-          'id'   => $category_id,
           'name' => $tag
         ]);
 
@@ -188,7 +187,7 @@ class WordPressImporter {
           'term_taxonomy_id' => $tag_id,
           'term_order'       => 0
         ]);
-        print("    + Etiqueta encontrada, procesando > ".$tag." ID > ".$tag_id."\n");
+        print("    + Etiqueta encontrada, procesando > ".$tag." ID > ".$tag_id.' Relationship ID > '.$relation_sh_id."\n");
 
       }
 
