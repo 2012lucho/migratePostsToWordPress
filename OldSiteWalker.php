@@ -40,6 +40,13 @@ class OldSiteWalker {
           ]);
         }
 
+        if ( strpos( $post->imagen, 'www.youtube.com' ) !== false  ){
+          $post->contenido .= '<iframe width="820" height="360" src="'.$post->imagen.'" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'.$post->contenido;
+          $categories[] = $this->wordpress_importer->insertCategory( [
+            'id'   => '',  'name' => 'Video'
+          ]);
+        }
+
         //Se continua con la carga del post
         $this->wordpress_importer->insertPost( [
             'post_author'           => 1,
