@@ -161,19 +161,21 @@ class WordPressImporter {
   ///////////////////////////////////////////////////////////////////
   ///// POSTS
   //////////////////////
-  public function insertPost( $post, $category_id, $tags ){
+  public function insertPost( $post, $categories, $tags ){
     $post['post_name'] = $this->getSlug($post['post_name']);
 
     $post_f = $this->insertPostElement( $post );
 
     if ($post_f > 0){
       //Se asocian los posts con sus respectivas categorías
-      print("   + Post procesado (asociado con su categoría), ID> ".$post_f."\n");
-      $relation_sh_id = $this->insertTermRelationship( [
-        'object_id'        => $post_f,
-        'term_taxonomy_id' => $category_id,
-        'term_order'       => 0
-      ]);
+      for ( $i=0; $i < count($categories); $i++){
+        print("   + Post procesado (asociado con su categoría), ID> ".$post_f."\n");
+        $relation_sh_id = $this->insertTermRelationship( [
+          'object_id'        => $post_f,
+          'term_taxonomy_id' => $categories[$i],
+          'term_order'       => 0
+        ]);
+      }
 
       //Se asocian los posts con sus respectivos tags
       for ( $k = 0; $k < count($tags); $k++ ){

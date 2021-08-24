@@ -29,11 +29,15 @@ class OldSiteWalker {
 
       //Se recorren los posts
       for ( $d=0; $d < count($category_posts); $d++ ){
-        $post = $category_posts[$d];
+        $post       = $category_posts[$d];
+        $categories = [ $category_inserted ];
 
         //Verificación de embebido
         if ( $post->radiocut != Null || $post->radiocut != ''){
           $post->contenido .= '<iframe scrolling="no" src="'.$post->radiocut.'" width="100%" height="175px" frameborder="no"></iframe>'.$post->contenido;
+          $categories[] = $this->wordpress_importer->insertCategory( [
+            'id'   => '',  'name' => 'Audio'
+          ]);
         }
 
         //Se continua con la carga del post
@@ -62,7 +66,7 @@ class OldSiteWalker {
             'comment_count'         => 0,
             'pie_imagen'            => $post->pie_imagen,
             'imagen'                => $post->imagen
-        ], $category_inserted, $this->_getTagsFromTagsString([ $post->keywords, $post->personas ]) );
+        ], $categories, $this->_getTagsFromTagsString([ $post->keywords, $post->personas ]) );
       }
 
       print("\n");
