@@ -30,6 +30,13 @@ class OldSiteWalker {
       //Se recorren los posts
       for ( $d=0; $d < count($category_posts); $d++ ){
         $post = $category_posts[$d];
+
+        //Verificación de embebido
+        if ( $post->radiocut != Null || $post->radiocut != ''){
+          $post->contenido .= '<iframe scrolling="no" src="'.$post->radiocut.'" width="100%" height="175px" frameborder="no"></iframe>'.$post->contenido;
+        }
+
+        //Se continua con la carga del post
         $this->wordpress_importer->insertPost( [
             'post_author'           => 1,
             'post_date'             => $post->fecha,
