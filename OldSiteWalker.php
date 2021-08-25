@@ -45,7 +45,11 @@ class OldSiteWalker {
         }
 
         if ( strpos( $post->imagen, 'www.youtube.com' ) !== false  ){
-          $post->contenido .= '<iframe width="820" height="360" src="'.$post->imagen.'" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'.$post->contenido;
+          //Se modifica url para corregir url de embebido
+          $post->imagen = str_replace( 'https://www.youtube.com/watch?v=', 'https://www.youtube.com/embed/', $post->imagen );
+
+          //se agrega iframe al principio del post
+          $post->contenido = '<iframe width="820" height="360" src="'.$post->imagen.'" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'.$post->contenido;
           $categories[] = $this->wordpress_importer->insertCategory( [
             'id'   => '',  'name' => 'Video'
           ]);
