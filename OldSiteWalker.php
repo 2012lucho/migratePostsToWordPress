@@ -34,7 +34,11 @@ class OldSiteWalker {
 
         //Verificación de embebido
         if ( $post->radiocut != Null || $post->radiocut != ''){
-          $post->contenido .= '<iframe scrolling="no" src="'.$post->radiocut.'" width="100%" height="175px" frameborder="no"></iframe>'.$post->contenido;
+          //Se modifica la url para corregir la url del embebido
+          $post->radiocut = str_replace( 'audiocut', 'audiocut/embed', $post->radiocut );
+
+          //Se agrega el iframe al principio del post
+          $post->contenido = '<iframe scrolling="no" src="'.$post->radiocut.'" width="100%" height="250px" frameborder="no"></iframe>'.$post->contenido;
           $categories[] = $this->wordpress_importer->insertCategory( [
             'id'   => '',  'name' => 'Audio'
           ]);
