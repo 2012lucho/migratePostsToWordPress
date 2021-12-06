@@ -297,6 +297,8 @@ class WordPressImporter {
             $imagen = imagecreatefrompng($imgPath);
         elseif($ext == "gif")
             $imagen = imagecreatefromgif($imgPath);
+        elseif ($ext == "webp")
+            $imagen = imagecreatefromwebp($imgPath);
 
         if ($imagen == Null){
           return Null;
